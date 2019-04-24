@@ -1,6 +1,6 @@
 #!/home/vagrant/python-env/env/bin python
 # This Python file uses the following encoding: utf-8
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from database_setup import Restaurant, Base, MenuItem
@@ -23,13 +23,21 @@ Base.metadata.bind = engine
 #session = DBSession()
 
 @app.route('/')
-@app.route('/restaurants/<int:restaurant_id>/')
+@app.route('/restaurants/<int:restaurant_id>/menu')
 def RestaurantMenu(restaurant_id):
     DBSession = sessionmaker(bind=engine)
     session = DBSession()
     restaurant = session.query(Restaurant).filter_by(id = restaurant_id).one()
     items = session.query(MenuItem).filter_by(restaurant_id = restaurant.id)
     return render_template('menu.html', restaurant=restaurant, items=items)
+
+@app.route('/restaurants/<int:restaurant_id>/menu/JSON')
+def restaurantMenuJSON(restaurant_id):
+    DBSession = sessionmaker(bind=engine)
+    session = DBSession()
+    restaurant = session.query(Restaurant).filter_by(id = restaurant_id).one()
+    items = session.query(MenuItem).filter_by(restaurant_id = restaurant.id)
+    return jsonify(MenuItems=[i.serialize for i in items])
 
 @app.route('/restaurants/<int:restaurant_id>/new', methods=['GET','POST'])
 def newMenuItem(restaurant_id):
@@ -47,6 +55,7 @@ def newMenuItem(restaurant_id):
             #description = request.form['description'], restaurant_id = restaurant_id)
         session.add(newItem)
         session.commit()
+        flash("New Menu item created")
         return redirect(url_for('RestaurantMenu', restaurant_id = restaurant_id))
     else:
         return render_template('newMenuItem.html', restaurant_id=restaurant_id)
@@ -60,12 +69,17 @@ def editMenuItem(restaurant_id, menu_id):
     if request.method == 'POST':
         #description = request.form['description'], restaurant_id = restaurant_id)
     #    if request.form['name']:
-            editedItem.name = request.form.get['name']
-            editedItem.description = request.form.get['description']
-            editedItem.price = request.form.get['price']
-            editedItem.course = request.form.get['course']
+            if request.form.get('name'):
+                editedItem.name = request.form.get('name')
+            if request.form.get('description'):
+                editedItem.description = request.form.get('description')
+            if request.form.get('price'):
+                editedItem.price = request.form.get('price')
+            if request.form.get('course'):
+                editedItem.course = request.form.get('course')
             session.add(editedItem)
             session.commit()
+            flash("Menu item edited")
             return redirect(url_for('RestaurantMenu', restaurant_id = restaurant_id))
         #else:
         #    return redirect(url_for('RestaurantMenu', restaurant_id = restaurant_id))
@@ -73,7 +87,7 @@ def editMenuItem(restaurant_id, menu_id):
         return render_template('editMenuItem.html', restaurant_id=restaurant_id, menu_id = menu_id, item=editedItem)
     session.close()
 
-@app.route('/restaurants/<int:restaurant_id>/<int:menu_id>/delete', method=['GET','POST'])
+@app.route('/restaurants/<int:restaurant_id>/<int:menu_id>/delete', methods=['GET','POST'])
 def deleteMenuItem(restaurant_id, menu_id):
     DBSession = sessionmaker(bind=engine)
     session = DBSession()
@@ -81,11 +95,14 @@ def deleteMenuItem(restaurant_id, menu_id):
     if request.method == 'POST':
         session.delete(deletedItem)
         session.commit()
+        flash("Menu item deleted")
         return redirect(url_for('RestaurantMenu', restaurant_id = restaurant_id))
     else:
         return render_template('deleteMenuItem.html', restaurant_id = restaurant_id, menu_id = menu_id, item = deletedItem)
     session.close()
 
+
 if __name__ == '__main__':
+    app.secret_key = "secret"
     app.debug = True
-    app.run(host='192.168.0.15', port=8000)
+    app.run(host='192.168.0.15', port=8080)
