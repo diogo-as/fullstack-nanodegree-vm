@@ -3,8 +3,7 @@
 
 </head>
 <body>
-  <h1> {{ restaurant.name }} </h1>
-  <h2> Menu </h2>
+  <h1> Restaurants </h1>
   <div class='flash'>
     {% with messages = get_flashed_messages() %}
       {% if messages %}
@@ -17,12 +16,9 @@
     {% endwith %}
   </div>
 
-  {% for i in items %}
+  {% for i in restaurants %}
   <div class='nameAndPrice'>
     <spam class='name'><p>{{i.name}}</p></spam>
-    <spam class='name'><p>{{i.description}}</p></spam>
-    <spam class='name'><p>{{i.price}}</p></spam>
-    <spam class='name'><p>{{i.course}}</p></spam>
   </div>
   {% endfor %}
 
